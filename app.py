@@ -2,11 +2,11 @@
 Prompt Studio - Genesys Cloud Audio Prompt Generator
 Features: Text-to-Speech, Audio Recording, File Import, Export to Genesys Cloud
 With Genesys Cloud OAuth Authentication (Standalone + Embedded Mode)
+
+Simplified architecture: Session-based authentication (no database required)
 """
 from flask import Flask, redirect, url_for, render_template, request, session, jsonify, send_from_directory
-from flask_login import LoginManager, login_required, current_user, login_user, logout_user
-from extensions import db
-from models import AuthUser
+from functools import wraps
 import os
 import re
 import uuid
@@ -15,12 +15,8 @@ import base64
 import time
 import requests
 from dotenv import load_dotenv
-from werkzeug.security import generate_password_hash
-from datetime import datetime
 
 load_dotenv()
-
-login_manager = LoginManager()
 
 # OAuth Configuration for Genesys Cloud
 OAUTH_CONFIG = {
@@ -34,8 +30,6 @@ OAUTH_CONFIG = {
 # App Configuration
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', secrets.token_hex(32))
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///promptstudio.db'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max upload
 
@@ -52,6 +46,16 @@ class Config:
     # Session cookie settings for embedded iframe support
     SESSION_COOKIE_SAMESITE = 'None'
     SESSION_COOKIE_SECURE = True  # Required when SameSite=None (needs HTTPS)
+
+
+def login_required(f):
+    """Custom decorator to check if user is authenticated via session."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_info' not in session or not session.get('access_token'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 def sanitize_prompt_name(name):
@@ -72,21 +76,6 @@ def create_app():
     # Ensure upload directory exists
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
-    # Initialize extensions
-    db.init_app(app)
-    
-    # Initialize Flask-Login
-    login_manager.init_app(app)
-    login_manager.login_view = 'login'
-    
-    @login_manager.user_loader
-    def load_user(user_id):
-        return AuthUser.query.get(int(user_id))
-    
-    # Create tables
-    with app.app_context():
-        db.create_all()
-    
     # Import services here to avoid circular imports
     from services.azure_tts import generate_speech
     from services.genesys_export import upload_prompt_to_genesys
@@ -96,7 +85,7 @@ def create_app():
     @app.route('/login')
     def login():
         """Show login page."""
-        if current_user.is_authenticated:
+        if 'user_info' in session and session.get('access_token'):
             return redirect(url_for('index'))
         return render_template('login.html', config=app.config)
     
@@ -186,28 +175,6 @@ def create_app():
                     'email': user_data.get('email'),
                     'username': user_data.get('username')
                 }
-                
-                # Create or update AuthUser in database for Flask-Login
-                auth_user = AuthUser.query.filter_by(email=user_data.get('email')).first()
-                if not auth_user:
-                    auth_user = AuthUser(
-                        email=user_data.get('email'),
-                        genesys_user_id=user_data.get('id'),
-                        name=user_data.get('name'),
-                        password_hash=generate_password_hash(secrets.token_hex(16)),
-                        role='user',
-                        is_active=True
-                    )
-                    db.session.add(auth_user)
-                else:
-                    auth_user.name = user_data.get('name')
-                    auth_user.genesys_user_id = user_data.get('id')
-                    auth_user.last_login = datetime.utcnow()
-                
-                db.session.commit()
-                
-                # Log in the user with Flask-Login
-                login_user(auth_user)
             
             return redirect(url_for('index'))
         
@@ -257,26 +224,6 @@ def create_app():
                 'username': user_data.get('username')
             }
             
-            # Create or update AuthUser in database for Flask-Login
-            auth_user = AuthUser.query.filter_by(email=user_data.get('email')).first()
-            if not auth_user:
-                auth_user = AuthUser(
-                    email=user_data.get('email'),
-                    genesys_user_id=user_data.get('id'),
-                    name=user_data.get('name'),
-                    password_hash=generate_password_hash(secrets.token_hex(16)),
-                    role='user',
-                    is_active=True
-                )
-                db.session.add(auth_user)
-            else:
-                auth_user.last_login = datetime.utcnow()
-            
-            db.session.commit()
-            
-            # Log in the user with Flask-Login
-            login_user(auth_user)
-            
             return jsonify({
                 'success': True,
                 'user': {
@@ -292,7 +239,6 @@ def create_app():
     @login_required
     def logout():
         """Log out user."""
-        logout_user()
         session.clear()
         return redirect(url_for('login'))
     
@@ -379,4 +325,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True, port=5001)
+    app.run(debug=False, host='0.0.0.0', port=5001)
