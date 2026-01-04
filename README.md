@@ -1,4 +1,16 @@
 # 🎙️ Prompt Studio
+<div align="center">
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
+[![Docker](https://img.shields.io/badge/docker-automated-blue)](https://ghcr.io/pilvicontactcenter/prompt-studio)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Genesys Cloud](https://img.shields.io/badge/Genesys%20Cloud-Compatible-orange)](https://www.genesys.com)
+
+**Create professional audio prompts for your Genesys Cloud contact center in minutes, not hours.**
+*Deployed with 2025 Best Practices: Secured, Containerized, and CI/CD Integrated.*
+
+</div>
 
 **Create professional audio prompts for your Genesys Cloud contact center in minutes, not hours.**
 
@@ -71,6 +83,13 @@ Upload existing WAV files from your computer or professional recording studio.
 
 ### ☁️ One-Click Export
 Send your finished prompt directly to Genesys Cloud Architect with a single click. No more manual file uploads!
+
+### 🏗️ Modern 2025 Architecture
+Built with the latest web standards:
+- **Frontend**: Clean, lightweight interface using **CSS Variables** (Spark Design) and **Vanilla JS** (Zero dependencies).
+- **Backend**: Python 3.11 + Flask 3.x, optimized for speed.
+- **Security**: Non-root container execution, strict multi-stage builds, and secure session management.
+- **Deploy**: Cloud-native Docker container optimized for Gunicorn.
 
 ---
 
@@ -415,7 +434,7 @@ flowchart LR
     
     subgraph Server["🖧 Production Server"]
         D[Watchtower detects update]
-        E[Pull new image]
+        E[Pull optimized image]
         F[Restart container]
     end
     

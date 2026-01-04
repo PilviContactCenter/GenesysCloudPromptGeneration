@@ -1,42 +1,52 @@
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+# Stage 1: Builder
+FROM python:3.11-slim-bullseye as builder
 
-# Set working directory
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies in a local user directory
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Stage 2: Runtime
+FROM python:3.11-slim-bullseye
+
 WORKDIR /app
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    FLASK_APP=app.py \
-    FLASK_ENV=production
+    FLASK_DEBUG=0 \
+    PATH=/home/appuser/.local/bin:$PATH
 
-# Install system dependencies for Azure Speech SDK
-# Note: Azure Speech SDK requires OpenSSL 1.1 which is not in newer Debian
+# Create a non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Install runtime system dependencies
+# Azure Speech SDK relies on libasound2 and OpenSSL 1.1 (native in Bullseye)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libssl-dev \
-    ca-certificates \
     libasound2 \
+    ca-certificates \
     wget \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install OpenSSL 1.1 for Azure Speech SDK compatibility
-RUN curl -O http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb \
-    && dpkg -i libssl1.1_1.1.1f-1ubuntu2_amd64.deb \
-    && rm libssl1.1_1.1.1f-1ubuntu2_amd64.deb
-
-# Copy requirements first (for better caching)
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy installed python packages from builder
+COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy application code
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create necessary directories and set permissions
+RUN mkdir -p uploads instance && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 5001
@@ -45,5 +55,5 @@ EXPOSE 5001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:5001/login || exit 1
 
-# Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:5001", "app:create_app()"]
+# Run the application with Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--threads", "4", "app:create_app()"]
