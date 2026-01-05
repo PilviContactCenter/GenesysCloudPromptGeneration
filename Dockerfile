@@ -27,10 +27,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Install runtime system dependencies
-# Azure Speech SDK requires: libasound2, libssl1.1, and other libs
+# Azure Speech SDK requires: OpenSSL 1.1, ALSA, and C++ runtime libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2 \
     libssl1.1 \
+    libstdc++6 \
+    libgomp1 \
+    libatomic1 \
     ca-certificates \
     wget \
     curl \
