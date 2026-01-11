@@ -3,7 +3,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110/)
-[![Docker](https://img.shields.io/badge/docker-automated-blue)](https://ghcr.io/pilvicontactcenter/prompt-studio)
+[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://www.docker.com/)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Genesys Cloud](https://img.shields.io/badge/Genesys%20Cloud-Compatible-orange)](https://www.genesys.com)
 
@@ -228,55 +228,7 @@ Choose your deployment method below:
 
 ---
 
-## 🐳 Option A: Docker (Recommended)
-
-The fastest way to get started — no building required! We provide pre-built Docker images.
-
-### Quick Start with Pre-built Image
-
-1. **Create a directory and download files**
-   ```bash
-   mkdir prompt-studio && cd prompt-studio
-   
-   # Download required files
-   curl -O https://raw.githubusercontent.com/PilviContactCenter/GenesysCloudPromptGeneration/main/docker-compose.prod.yml
-   curl -O https://raw.githubusercontent.com/PilviContactCenter/GenesysCloudPromptGeneration/main/.env.example
-   curl -O https://raw.githubusercontent.com/PilviContactCenter/GenesysCloudPromptGeneration/main/scripts/update.sh
-   chmod +x update.sh
-   ```
-
-2. **Configure environment**
-   ```bash
-   cp .env.example .env
-   nano .env  # Edit with your credentials
-   ```
-
-3. **Run the application**
-   ```bash
-   docker-compose -f docker-compose.prod.yml up -d
-   ```
-
-4. **Access the application**
-   ```
-   http://localhost:5001
-   ```
-
-### Updating to Latest Version
-
-```bash
-./update.sh
-```
-
-Or manually:
-```bash
-docker pull ghcr.io/pilvicontactcenter/prompt-studio:latest
-docker-compose -f docker-compose.prod.yml down
-docker-compose -f docker-compose.prod.yml up -d
-```
-
----
-
-## 🐳 Option B: Docker (Build from Source)
+## 🐳 Docker Deployment (Recommended)
 
 For contributors or customization, build the image locally.
 
@@ -327,7 +279,7 @@ docker-compose down
 
 ---
 
-## 🐍 Option C: Local Python (Development)
+## 🐍 Local Python (Development)
 
 Run directly with Python for development and debugging.
 
@@ -392,15 +344,12 @@ Copy `.env.example` to `.env` and configure:
 PromptGeneration/
 ├── .github/
 │   └── workflows/
-│       └── docker-publish.yml    # CI/CD: Auto-build and publish to GHCR
+│       └── docker-publish.yml    # CI/CD: Build validation
 ├── app.py                        # Main Flask application (session-based auth)
 ├── config.py                     # Configuration settings
 ├── Dockerfile                    # Docker build configuration
-├── docker-compose.yml            # Development compose file
-├── docker-compose.prod.yml       # Production compose (pre-built image)
-├── docker-compose.watchtower.yml # Auto-update configuration
-├── scripts/
-│   └── update.sh                 # Manual update script
+├── docker-compose.yml            # Docker Compose configuration
+├── manual.md                     # Server deployment guide
 ├── services/
 │   ├── azure_tts.py              # Azure Text-to-Speech integration
 │   └── genesys_export.py         # Genesys Cloud Architect export

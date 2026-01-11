@@ -19,9 +19,12 @@ class Config:
     UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max upload
     
-    # Session cookie settings for embedded iframe support
-    SESSION_COOKIE_SAMESITE = 'None'
-    SESSION_COOKIE_SECURE = True  # Required when SameSite=None (needs HTTPS)
+    # Session cookie settings
+    # In development (HTTP): SameSite=Lax, Secure=False
+    # In production (HTTPS): SameSite=None, Secure=True (for iframe support)
+    _is_production = os.getenv('FLASK_ENV') == 'production'
+    SESSION_COOKIE_SAMESITE = 'None' if _is_production else 'Lax'
+    SESSION_COOKIE_SECURE = _is_production  # True only for HTTPS
     
     # Azure TTS Credentials
     AZURE_SPEECH_KEY = os.getenv('AZURE_SPEECH_KEY')
