@@ -46,7 +46,9 @@ COPY --from=builder /root/.local /home/appuser/.local
 COPY . .
 
 # Create necessary directories and set permissions
+# Use chmod 777 for uploads to handle volume mount permission issues
 RUN mkdir -p uploads instance && \
+    chmod 777 uploads && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user
