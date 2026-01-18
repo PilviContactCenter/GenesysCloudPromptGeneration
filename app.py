@@ -142,8 +142,7 @@ def create_app():
             # Get user info from Genesys Cloud
             user_response = requests.get(
                 f"https://api.{OAUTH_CONFIG['base_url']}/api/v2/users/me",
-                headers={'Authorization': f"Bearer {token_data['access_token']}"},
-                verify=False
+                headers={'Authorization': f"Bearer {token_data['access_token']}"}
             )
             
             if user_response.status_code == 200:
@@ -180,8 +179,7 @@ def create_app():
             # Validate the token by fetching user info from Genesys Cloud
             user_response = requests.get(
                 f"https://api.{OAUTH_CONFIG['base_url']}/api/v2/users/me",
-                headers={'Authorization': f"Bearer {access_token}"},
-                verify=False
+                headers={'Authorization': f"Bearer {access_token}"}
             )
             
             if user_response.status_code != 200:
@@ -231,7 +229,13 @@ def create_app():
         """
         try:
             data = request.get_json()
+            if data is None:
+                return jsonify({'success': False, 'error': 'Invalid request'}), 400
             password = data.get('password', '')
+            if not isinstance(password, str):
+                return jsonify({'success': False, 'error': 'Invalid password data'}), 400
+            if not password:
+                return jsonify({'success': False, 'error': 'Invalid password data'}), 400
             
             # Get admin password from environment
             admin_password = os.environ.get('ADMIN_PASSWORD', '')
@@ -239,7 +243,10 @@ def create_app():
             if not admin_password:
                 return jsonify({'success': False, 'error': 'Admin login not configured'}), 403
             
-            if password == admin_password:
+            if secrets.compare_digest(
+                password.encode('utf-8'),
+                admin_password.encode('utf-8')
+            ):
                 # Create admin session
                 session['access_token'] = 'admin_local_session'
                 session['token_expires'] = time.time() + 86400  # 24 hours
@@ -302,7 +309,17 @@ def create_app():
             return jsonify({'error': 'No selected file'}), 400
         
         if file:
-            ext = os.path.splitext(file.filename)[1]
+            ext = os.path.splitext(file.filename)[1].lower()
+            if ext not in app.config['ALLOWED_EXTENSIONS']:
+                return jsonify({'error': 'Invalid file type. Only WAV files are allowed.'}), 400
+            header = file.stream.read(12)
+            try:
+                if len(header) < 12:
+                    return jsonify({'error': 'Invalid WAV file header.'}), 400
+                if header[:4] != b'RIFF' or header[8:12] != b'WAVE':
+                    return jsonify({'error': 'Invalid WAV file header.'}), 400
+            finally:
+                file.stream.seek(0)
             filename = f"upload_{uuid.uuid4().hex[:16]}{ext}"
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
