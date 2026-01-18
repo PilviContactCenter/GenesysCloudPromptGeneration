@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Environment files (secrets)
+.env
+
+# Python cache
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation and screenshots
+screenshots/
+*.md
+!README.md
+
+# Instance folder (SQLite database)
+instance/
+
+# Logs
+*.log
+logs/
