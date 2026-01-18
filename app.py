@@ -233,9 +233,9 @@ def create_app():
                 return jsonify({'success': False, 'error': 'Invalid request'}), 400
             password = data.get('password', '')
             if not isinstance(password, str):
-                return jsonify({'success': False, 'error': 'Invalid password'}), 401
+                return jsonify({'success': False, 'error': 'Invalid password data'}), 400
             if not password:
-                return jsonify({'success': False, 'error': 'Invalid password'}), 401
+                return jsonify({'success': False, 'error': 'Invalid password data'}), 400
             
             # Get admin password from environment
             admin_password = os.environ.get('ADMIN_PASSWORD', '')
@@ -312,6 +312,14 @@ def create_app():
             ext = os.path.splitext(file.filename)[1].lower()
             if ext not in app.config['ALLOWED_EXTENSIONS']:
                 return jsonify({'error': 'Invalid file type. Only WAV files are allowed.'}), 400
+            header = file.stream.read(12)
+            try:
+                if len(header) < 12:
+                    return jsonify({'error': 'Invalid WAV file header.'}), 400
+                if header[:4] != b'RIFF' or header[8:12] != b'WAVE':
+                    return jsonify({'error': 'Invalid WAV file header.'}), 400
+            finally:
+                file.stream.seek(0)
             filename = f"upload_{uuid.uuid4().hex[:16]}{ext}"
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
