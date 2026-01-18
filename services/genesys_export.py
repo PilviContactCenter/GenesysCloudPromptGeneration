@@ -42,7 +42,6 @@ def get_api_client_and_token():
     
     # Get access token directly from api_client
     access_token = api_client.access_token
-    print(f"Token retrieved: {access_token[:30] if access_token else 'None'}...")
     
     return api_client, access_token
 
